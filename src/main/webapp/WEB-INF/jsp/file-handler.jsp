@@ -49,11 +49,11 @@
 
         <!-- 下載檔案表單 -->
         <form id="downloadForm" action="/files/download" method="get" target="_blank">
-            <label for="downloadFolder">下載目錄名稱：</label>
-            <input type="text" id="downloadFolder" name="folder" placeholder="請輸入目錄名稱" required>
+            <label for="folder">下載目錄名稱：</label>
+            <input type="text" id="folder" name="folder" placeholder="D:/test" required>
 
             <label for="fileName">檔案名稱：</label>
-            <input type="text" id="fileName" name="fileName" placeholder="請輸入檔案名稱" required>
+            <input type="text" id="fileName" name="fileName" placeholder="example.txt" required>
 
             <button type="submit">下載檔案</button>
         </form>

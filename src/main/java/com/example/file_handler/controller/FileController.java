@@ -1,6 +1,7 @@
 package com.example.file_handler.controller;
 
-
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +44,7 @@ public class FileController {
             }
 
             // 確認目錄是否存在，若不存在則建立
-            Path folderPath = Paths.get(BASE_DIR, folder);
+            Path folderPath = Paths.get(folder);
             if (Files.notExists(folderPath)) {
                 Files.createDirectories(folderPath); // 建立目錄
             }
@@ -58,34 +59,44 @@ public class FileController {
                     .body("檔案上傳失敗：" + e.getMessage());
         }
     }
+
     /**
-     * 檔案下載
-     * 
-     * @param folder 自訂目錄名稱
+     * 從指定目錄下載檔案
+     *
+     * @param folder 目錄名稱
      * @param fileName 檔案名稱
-     * @return 回傳檔案內容
+     * @return 回傳檔案
      */
-    @GetMapping("/download/{folder}/{fileName}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable String folder, @PathVariable String fileName) {
+    @GetMapping("/download")
+    public ResponseEntity<Resource> downloadFile(
+            @RequestParam("folder") String folder,
+            @RequestParam("fileName") String fileName) {
         try {
-            Path filePath = Paths.get(BASE_DIR, folder, fileName);
+            // 構建檔案路徑
+            Path filePath = Paths.get(folder).resolve(fileName).normalize();
+
+            // 確認檔案是否存在
             if (!Files.exists(filePath)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(("檔案不存在：" + filePath.toAbsolutePath()).getBytes());
+                return ResponseEntity.notFound().build();
             }
 
-            byte[] fileContent = Files.readAllBytes(filePath);
+            // 將檔案轉為 Resource
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new RuntimeException("無法讀取檔案：" + fileName);
+            }
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
-
+            // 設置正確的 MIME 類型和下載標頭
+            String contentType = "application/pdf"; // 確保 MIME 類型正確
             return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(fileContent);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(("檔案下載失敗：" + e.getMessage()).getBytes());
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .body(resource);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
+
 }
 
